@@ -77,7 +77,7 @@ Because Sonarr, Radarr, and NZBGet all mount `F:\Media Server\Downloads` at the 
 - Syncs the TRaSH Guides **Remux + WEB 1080p** quality profile to both Radarr and Sonarr
 - **Special Edition** custom format boosted to score 200 in Radarr, so searches prefer extended/director's cut/unrated/special editions of movies
 - Runs a scheduled sync automatically (daily); manual sync: `docker compose run --rm recyclarr sync`
-- After first sync, switch existing movies/series to the "Remux + WEB 1080p" profile, and set it as the default in Radarr (Settings → Profiles) and in Seerr's Radarr/Sonarr integration
+- After first sync, bulk-switch existing movies/series to the "Remux + WEB 1080p" profile (Movies/Series → table view → select all → Edit → Quality Profile); for new requests, set the profile default in Seerr's Radarr/Sonarr settings
 
 ### Container networking
 All services share the Compose default network and can reach each other by container name (`nzbget`, `radarr`, `sonarr`). Do not use `localhost` when configuring inter-container connections.
