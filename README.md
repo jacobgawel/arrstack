@@ -35,6 +35,39 @@ Because Sonarr, Radarr, and NZBGet all mount `F:\Media Server\Downloads` at the 
 
 > **Note:** Seerr's config lives in a Docker named volume (`seerr-data`) rather than a host folder. On Windows, bind-mounting Seerr's SQLite database over SMB can corrupt it. Deleting the volume (`docker compose down -v` or `docker volume rm seerr-data`) loses Seerr's settings, users, and request history. Backup location: `\\wsl$\docker-desktop-data\version-pack-data\community\docker\volumes\seerr-data\_data`.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    User([User / friends via Tailscale])
+    Plex[Plex Media Server<br/>(external, Windows host)]
+    Seerr[Seerr<br/>:5055]
+    Radarr[Radarr<br/>:7878]
+    Sonarr[Sonarr<br/>:8989]
+    NZBGet[NZBGet<br/>:6789]
+    Geek[NZBGeek indexer]
+    Eweka[Eweka Usenet]
+    DL[("F:\Media Server\Downloads<br/>/downloads")]
+    Movies[("F:\Media Server\Movies<br/>/movies")]
+    TV[("F:\Media Server\TV Shows<br/>/tv")]
+    Recyclarr[Recyclarr<br/>daily sync]
+    TRaSH[TRaSH Guides]
+
+    User -->|requests media| Seerr
+    Seerr -->|movies| Radarr
+    Seerr -->|TV| Sonarr
+    Radarr & Sonarr -->|search| Geek
+    Radarr & Sonarr -->|send NZB| NZBGet
+    NZBGet <-->|download articles| Eweka
+    NZBGet -->|writes| DL
+    Radarr -->|imports & renames| Movies
+    Sonarr -->|imports & renames| TV
+    Plex -->|scans| Movies & TV
+    Plex -.->|availability| Seerr
+    TRaSH --> Recyclarr
+    Recyclarr -->|profiles & custom formats| Radarr & Sonarr
+```
+
 ## How the Flow Works
 
 1. A user requests a movie/series in **Seerr** (http://localhost:5055)
