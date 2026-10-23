@@ -10,6 +10,7 @@ Docker Compose stack for automated movies and TV: request media via Seerr, manag
 | Radarr | http://localhost:7878 | Movie management | `lscr.io/linuxserver/radarr:latest` |
 | NZBGet | http://localhost:6789 | Usenet download client | `nzbgetcom/nzbget:latest` |
 | Seerr | http://localhost:5055 | Media requests & discovery | `ghcr.io/seerr-team/seerr:latest` |
+| Recyclarr | — | Syncs TRaSH Guide profiles/custom formats to Sonarr/Radarr | `ghcr.io/recyclarr/recyclarr:8` |
 
 All services use `TZ=Europe/London` and restart automatically (`unless-stopped`).
 
@@ -70,6 +71,13 @@ Because Sonarr, Radarr, and NZBGet all mount `F:\Media Server\Downloads` at the 
 - Media server: Plex (external install — detected via setup wizard)
 - Radarr/Sonarr connections: add via API keys from Radarr/Sonarr Settings → General → API Key
 - Root folder dropdowns are populated from Radarr/Sonarr's root folders
+
+### Recyclarr
+- Config: `config/recyclarr/configs/recyclarr.yml` (gitignored — contains API keys)
+- Syncs the TRaSH Guides **Remux + WEB 1080p** quality profile to both Radarr and Sonarr
+- **Special Edition** custom format boosted to score 200 in Radarr, so searches prefer extended/director's cut/unrated/special editions of movies
+- Runs a scheduled sync automatically (daily); manual sync: `docker compose run --rm recyclarr sync`
+- After first sync, switch existing movies/series to the "Remux + WEB 1080p" profile, and set it as the default in Radarr (Settings → Profiles) and in Seerr's Radarr/Sonarr integration
 
 ### Container networking
 All services share the Compose default network and can reach each other by container name (`nzbget`, `radarr`, `sonarr`). Do not use `localhost` when configuring inter-container connections.

@@ -43,6 +43,16 @@ services:
       - 6789:6789
     restart: unless-stopped
 
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:8
+    container_name: recyclarr
+    user: 1000:1000
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - ./config/recyclarr:/config
+    restart: unless-stopped
+
   seerr:
     image: ghcr.io/seerr-team/seerr:latest
     container_name: seerr
