@@ -40,18 +40,18 @@ Because Sonarr, Radarr, and NZBGet all mount `F:\Media Server\Downloads` at the 
 ```mermaid
 flowchart LR
     User([User / friends via Tailscale])
-    Plex[Plex Media Server<br/>(external, Windows host)]
-    Seerr[Seerr<br/>:5055]
-    Radarr[Radarr<br/>:7878]
-    Sonarr[Sonarr<br/>:8989]
-    NZBGet[NZBGet<br/>:6789]
-    Geek[NZBGeek indexer]
-    Eweka[Eweka Usenet]
-    DL[("F:\Media Server\Downloads<br/>/downloads")]
-    Movies[("F:\Media Server\Movies<br/>/movies")]
-    TV[("F:\Media Server\TV Shows<br/>/tv")]
-    Recyclarr[Recyclarr<br/>daily sync]
-    TRaSH[TRaSH Guides]
+    Plex["Plex Media Server (external, Windows host)"]
+    Seerr["Seerr :5055"]
+    Radarr["Radarr :7878"]
+    Sonarr["Sonarr :8989"]
+    NZBGet["NZBGet :6789"]
+    Geek["NZBGeek indexer"]
+    Eweka["Eweka Usenet"]
+    DL[("F:/Media Server/Downloads - /downloads")]
+    Movies[("F:/Media Server/Movies - /movies")]
+    TV[("F:/Media Server/TV Shows - /tv")]
+    Recyclarr["Recyclarr daily sync"]
+    TRaSH["TRaSH Guides"]
 
     User -->|requests media| Seerr
     Seerr -->|movies| Radarr
@@ -60,12 +60,12 @@ flowchart LR
     Radarr & Sonarr -->|send NZB| NZBGet
     NZBGet <-->|download articles| Eweka
     NZBGet -->|writes| DL
-    Radarr -->|imports & renames| Movies
-    Sonarr -->|imports & renames| TV
+    Radarr -->|imports and renames| Movies
+    Sonarr -->|imports and renames| TV
     Plex -->|scans| Movies & TV
     Plex -.->|availability| Seerr
     TRaSH --> Recyclarr
-    Recyclarr -->|profiles & custom formats| Radarr & Sonarr
+    Recyclarr -->|profiles and custom formats| Radarr & Sonarr
 ```
 
 ## How the Flow Works
