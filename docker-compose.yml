@@ -1,0 +1,67 @@
+services:
+  sonarr:
+    image: lscr.io/linuxserver/sonarr:latest
+    container_name: sonarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./config/sonarr:/config
+      - "F:/Media Server/TV Shows:/tv"
+      - "F:/Media Server/Downloads:/downloads"
+    ports:
+      - 8989:8989
+    restart: unless-stopped
+
+  radarr:
+    image: lscr.io/linuxserver/radarr:latest
+    container_name: radarr
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./config/radarr:/config
+      - "F:/Media Server/Movies:/movies"
+      - "F:/Media Server/Downloads:/downloads"
+    ports:
+      - 7878:7878
+    restart: unless-stopped
+
+  nzbget:
+    image: nzbgetcom/nzbget:latest
+    container_name: nzbget
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/London
+    volumes:
+      - ./config/nzbget:/config
+      - "F:/Media Server/Downloads:/downloads"
+    ports:
+      - 6789:6789
+    restart: unless-stopped
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    container_name: seerr
+    init: true
+    environment:
+      - TZ=Europe/London
+    volumes:
+      - seerr-data:/app/config
+    ports:
+      - 5055:5055
+    healthcheck:
+      test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1
+      start_period: 20s
+      timeout: 3s
+      interval: 15s
+      retries: 3
+    security_opt:
+      - no-new-privileges
+    restart: unless-stopped
+
+volumes:
+  seerr-data:
