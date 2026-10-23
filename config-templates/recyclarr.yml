@@ -1,0 +1,36 @@
+# Template for restoring Recyclarr's configuration.
+# Copy to config/recyclarr/configs/recyclarr.yml and replace the placeholders:
+#   - RADARR_API_KEY  (Radarr -> Settings -> General -> API Key)
+#   - SONARR_API_KEY  (Sonarr -> Settings -> General -> API Key)
+# Then run: docker compose run --rm recyclarr sync
+
+radarr:
+  radarr-main:
+    base_url: http://radarr:7878
+    api_key: RADARR_API_KEY
+    delete_old_custom_formats: true
+    quality_definition:
+      type: movie
+    quality_profiles:
+      # Remux + WEB 1080p — matches the 1080p REMUX downloads
+      - trash_id: 9ca12ea80aa55ef916e3751f4b874151
+        reset_unmatched_scores:
+          enabled: true
+    custom_formats:
+      # Boost extended/special/director's cut/unrated editions so search prefers them
+      - trash_ids:
+          - 957d0f44b592285f26449575e8b1167e # Special Edition
+        assign_scores_to:
+          - name: Remux + WEB 1080p
+            score: 200
+
+sonarr:
+  sonarr-main:
+    base_url: http://sonarr:8989
+    api_key: SONARR_API_KEY
+    quality_definition:
+      type: series
+    quality_profiles:
+      - trash_id: fe9470e577c300a5ad9a3274f6d1cdf2 # Remux + WEB 1080p
+        reset_unmatched_scores:
+          enabled: true

@@ -82,11 +82,23 @@ Because Sonarr, Radarr, and NZBGet all mount `F:\Media Server\Downloads` at the 
 ### Container networking
 All services share the Compose default network and can reach each other by container name (`nzbget`, `radarr`, `sonarr`). Do not use `localhost` when configuring inter-container connections.
 
+## Restoring From Scratch
+
+The `config-templates/` folder holds sanitized copies of the custom configuration (secrets redacted) so the stack can be rebuilt quickly:
+
+1. `docker compose up -d` — start the stack (first start creates default configs under `config/`)
+2. **Recyclarr**: copy `config-templates/recyclarr.yml` to `config/recyclarr/configs/recyclarr.yml`, replace `RADARR_API_KEY` / `SONARR_API_KEY` with the keys from Radarr/Sonarr → Settings → General → API Key, then `docker compose run --rm recyclarr sync`
+3. **NZBGet**: log in at http://localhost:6789 (default `nzbget` / `tegbzn6789`) and apply the settings listed in `config-templates/nzbget-restore-settings.txt` (Eweka server, paths, categories, performance tuning)
+4. Follow the Configuration Summary sections below for Radarr, Sonarr, and Seerr (root folders, download clients, indexers, Plex/API links)
+
+Everything else (root folders, download client wiring, media paths) is documented in this README and applied through the web UIs in minutes.
+
 ## Common Commands
 
 ```powershell
 # Start the stack
 docker compose up -d
+
 
 # Apply changes and remove old containers (e.g. after service swaps)
 docker compose up -d --remove-orphans

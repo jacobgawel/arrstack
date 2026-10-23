@@ -1,0 +1,32 @@
+# NZBGet restore template
+# Copy to config/nzbget/nzbget.conf AFTER the container has created the default
+# config on first start, then edit the values below into it (NZBGet rewrites the
+# full config file on save, so a partial file is not sufficient on its own).
+# Restart NZBGet after editing: docker compose restart nzbget
+
+Key settings to apply (see README "NZBGet" section for full detail):
+
+  Server1.Name=Eweka
+  Server1.Host=news.eweka.nl
+  Server1.Port=563
+  Server1.Encryption=yes
+  Server1.Connections=50
+  Server1.Username=<EWEKA_USERNAME>
+  Server1.Password=<EWEKA_PASSWORD>
+
+  MainDir=/downloads
+  DestDir=${MainDir}/completed
+  InterDir=${MainDir}/intermediate
+  AppendCategoryDir=no
+
+  Category1.Name=Movies
+  Category1.DestDir=${MainDir}/completed/movies
+  Category2.Name=Series
+  Category2.DestDir=${MainDir}/completed/tv
+
+  ArticleCache=600
+  WriteBuffer=2048
+  ArticleReadChunkSize=64
+  UnrarCmd=unrar7
+  DirectUnpack=yes
+  ParRepair=yes
