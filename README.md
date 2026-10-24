@@ -88,7 +88,8 @@ flowchart LR
 - Web UI login: `nzbget` / `tegbzn6789` (change under Settings → Security)
 
 ### Indexers
-- NZBGeek (https://nzbgeek.info/) — usenet indexer, added to both Radarr and Sonarr (Settings → Indexers) with its API key
+- NZBGeek (https://nzbgeek.info/) — primary usenet indexer, added to both Radarr and Sonarr (Settings → Indexers) with its API key
+- AltHUB (https://althub.co.za/) — secondary usenet indexer, also added to both Radarr and Sonarr
 - Retention: set to ~3500 days (Eweka has ~5000; leave headroom)
 
 ### Radarr
