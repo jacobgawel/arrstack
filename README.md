@@ -81,7 +81,7 @@ flowchart LR
 ## Configuration Summary
 
 ### NZBGet
-- Provider: Eweka — host `news.eweka.nl`, port `563`, encryption on, connections `50` (plan max)
+- Provider: Eweka — host `news.eweka.nl`, port `563`, encryption on, connections `40` (plan allows 50, but bursting to the full 50 trips Eweka's "502 Too many connections" auth guard)
 - `Level`/`Group` left at defaults (single provider)
 - `ArticleCache` 600, `WriteBuffer` 2048 (KiB), `ArticleReadChunkSize` 64 (KiB) — tuned for ~900 Mbps line / NVMe disk
 - Paths: `MainDir=/downloads`, `DestDir=${MainDir}/completed`, `AppendCategoryDir=no`
@@ -109,9 +109,10 @@ flowchart LR
 - Exposed publicly via Cloudflare Tunnel (see `cloudflared` below)
 
 ### cloudflared (Cloudflare Tunnel)
-- Tunnel token stored in `.env` (gitignored) as `CLOUDFLARE_TUNNEL_TOKEN`
+- Tunnel token stored in `.env` (gitignored) as `CLOUDFLARE_TUNNEL_TOKEN` — this is the long JWT (starts `eyJ...`) from the tunnel's "Install and run a connector" section, **not** the tunnel ID
 - Setup: Cloudflare Zero Trust dashboard → Networks → Tunnels → Create tunnel → copy the token into `.env` → `docker compose up -d`
 - Public hostname routing (e.g. `requests.yourdomain.com` → `http://seerr:5055`) is configured in the Cloudflare dashboard, pointing at the container by service name
+- **Gotcha:** after changing the token in `.env`, recreate the container with `docker compose up -d cloudflared` — a plain `docker compose restart` keeps the old env value
 
 ### Recyclarr
 - Config: `config/recyclarr/configs/recyclarr.yml` (gitignored — contains API keys)
