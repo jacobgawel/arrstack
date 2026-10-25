@@ -10,6 +10,7 @@ Docker Compose stack for automated movies and TV: request media via Seerr, manag
 | Radarr | http://localhost:7878 | Movie management | `lscr.io/linuxserver/radarr:latest` |
 | NZBGet | http://localhost:6789 | Usenet download client | `nzbgetcom/nzbget:latest` |
 | Seerr | http://localhost:5055 | Media requests & discovery | `ghcr.io/seerr-team/seerr:latest` |
+| cloudflared | — | Cloudflare Tunnel exposing Seerr to your domain | `cloudflare/cloudflared:latest` |
 | Recyclarr | — | Syncs TRaSH Guide profiles/custom formats to Sonarr/Radarr | `ghcr.io/recyclarr/recyclarr:8` |
 
 All services use `TZ=Europe/London` and restart automatically (`unless-stopped`).
@@ -105,6 +106,12 @@ flowchart LR
 - Media server: Plex (external install — detected via setup wizard)
 - Radarr/Sonarr connections: add via API keys from Radarr/Sonarr Settings → General → API Key
 - Root folder dropdowns are populated from Radarr/Sonarr's root folders
+- Exposed publicly via Cloudflare Tunnel (see `cloudflared` below)
+
+### cloudflared (Cloudflare Tunnel)
+- Tunnel token stored in `.env` (gitignored) as `CLOUDFLARE_TUNNEL_TOKEN`
+- Setup: Cloudflare Zero Trust dashboard → Networks → Tunnels → Create tunnel → copy the token into `.env` → `docker compose up -d`
+- Public hostname routing (e.g. `requests.yourdomain.com` → `http://seerr:5055`) is configured in the Cloudflare dashboard, pointing at the container by service name
 
 ### Recyclarr
 - Config: `config/recyclarr/configs/recyclarr.yml` (gitignored — contains API keys)
