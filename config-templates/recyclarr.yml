@@ -23,6 +23,13 @@ radarr:
         assign_scores_to:
           - name: Remux + WEB 1080p
             score: 200
+      # Prioritize English-language releases: penalize non-English ones so English
+      # wins when available, but French/etc. can still grab as a fallback
+      - trash_ids:
+          - 0dc8aec3bd1c47cd6c40c46ecd27e846 # Language: Not English
+        assign_scores_to:
+          - name: Remux + WEB 1080p
+            score: -100
 
 sonarr:
   sonarr-main:
@@ -35,9 +42,10 @@ sonarr:
         reset_unmatched_scores:
           enabled: true
     custom_formats:
-      # Avoid French-audio MULTi releases (French default audio/chapters)
+      # Prioritize English-language releases: penalize non-English ones so English
+      # wins when available, but French/etc. can still grab as a fallback
       - trash_ids:
-          - 322fca6f8f3694acc1401ddb530fd33d # Language: Not French
+          - 69aa1e159f97d860440b04cd6d590c4f # Language: Not English
         assign_scores_to:
           - name: Remux + WEB 1080p
-            score: -10000
+            score: -100
