@@ -1,8 +1,8 @@
 # NZBGet restore template
-# Copy to config/nzbget/nzbget.conf AFTER the container has created the default
-# config on first start, then edit the values below into it (NZBGet rewrites the
-# full config file on save, so a partial file is not sufficient on its own).
-# Restart NZBGet after editing: docker compose restart nzbget
+# Apply these values in the NZBGet settings UI after first start.
+# This is a settings reference, NOT a complete nzbget.conf: do not copy it over
+# the generated config. If editing the generated file manually, stop NZBGet
+# first, merge these values into the full config, then start NZBGet again.
 
 Key settings to apply (see README "NZBGet" section for full detail):
 
@@ -10,7 +10,7 @@ Key settings to apply (see README "NZBGet" section for full detail):
   Server1.Host=news.eweka.nl
   Server1.Port=563
   Server1.Encryption=yes
-  Server1.Connections=50
+  Server1.Connections=40
   Server1.Username=<EWEKA_USERNAME>
   Server1.Password=<EWEKA_PASSWORD>
 
@@ -27,6 +27,6 @@ Key settings to apply (see README "NZBGet" section for full detail):
   ArticleCache=600
   WriteBuffer=2048
   ArticleReadChunkSize=64
-  UnrarCmd=unrar7
-  DirectUnpack=yes
+  UnrarCmd=unrar
+  DirectUnpack=no
   ParRepair=yes
