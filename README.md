@@ -4,7 +4,7 @@ Docker Compose stack for media requests via Seerr, library automation via Sonarr
 
 ## Configuration and verification
 
-Reviewed on 29 October 2026 against `docker-compose.yml`, the saved Sonarr/Radarr XML settings, NZBGet configuration, and Recyclarr configuration. All six containers were running; Seerr reported healthy. This is a snapshot, not a continuous health check. An end-to-end request, download, import, and Plex playback was not tested.
+Reviewed on 29 October 2026 against `docker-compose.yml`, the saved Sonarr/Radarr XML settings, NZBGet configuration, and Recyclarr configuration. On 30 October 2026 the Compose file was hardened: image tags pinned, web ports bound to localhost, healthchecks added for every service except Recyclarr, container log rotation enabled, and Recyclarr made to wait for healthy Sonarr/Radarr. This is a snapshot, not a continuous health check. An end-to-end request, download, import, and Plex playback was not tested.
 
 Sonarr/Radarr download-client categories, indexers, quality-profile assignments, and Seerr connections must be checked in their UIs; they were not independently verified during this review. The setup instructions below describe the intended wiring.
 
@@ -12,16 +12,15 @@ Sonarr/Radarr download-client categories, indexers, quality-profile assignments,
 
 | Service | Local URL | Purpose | Image |
 |---|---|---|---|
-| Sonarr | http://localhost:8989 | TV library automation | `lscr.io/linuxserver/sonarr:latest` |
-| Radarr | http://localhost:7878 | Movie library automation | `lscr.io/linuxserver/radarr:latest` |
-| NZBGet | http://localhost:6789 | Usenet downloads | `nzbgetcom/nzbget:latest` |
-| Seerr | http://localhost:5055 | Requests and discovery | `ghcr.io/seerr-team/seerr:latest` |
-| cloudflared | No published port | Cloudflare Tunnel connector for Seerr | `cloudflare/cloudflared:latest` |
-| Recyclarr | No published port | Scheduled TRaSH quality-profile/custom-format sync | `ghcr.io/recyclarr/recyclarr:8` |
+| Sonarr | http://localhost:8989 | TV library automation | `lscr.io/linuxserver/sonarr:4.0.20.3014-ls1` |
+| Radarr | http://localhost:7878 | Movie library automation | `lscr.io/linuxserver/radarr:6.4.4.10685-ls323` |
+| NZBGet | http://localhost:6789 | Usenet downloads | `nzbgetcom/nzbget:v26.3` |
+| Seerr | http://localhost:5055 | Requests and discovery | `ghcr.io/seerr-team/seerr:v3.5.1` |
+| cloudflared | No published port | Cloudflare Tunnel connector for Seerr | `cloudflare/cloudflared:2026.10.4` |
+| Recyclarr | No published port | Scheduled TRaSH quality-profile/custom-format sync | `ghcr.io/recyclarr/recyclarr:8.8.0` |
+All services use `restart: unless-stopped` and set `TZ=Europe/London`. Every service except Recyclarr has a Compose healthcheck (`docker compose ps` shows `healthy`/`unhealthy`): Sonarr and Radarr poll `/ping`, NZBGet polls its web root from inside the container (localhost is exempt from its auth), cloudflared runs `cloudflared tunnel ready` against its metrics endpoint, and Seerr polls its public settings API. A healthy status proves the process answers HTTP, not that its integrations work. Restart policies do not automatically restart an unhealthy container or start Docker Desktop after a Windows reboot. Recyclarr waits for Sonarr and Radarr to be healthy before starting.
 
-All services use `restart: unless-stopped`. All except cloudflared explicitly set `TZ=Europe/London`. Only Seerr has a Compose healthcheck; a container being “Up” does not prove its integrations work. Restart policies do not automatically restart an unhealthy container or start Docker Desktop after a Windows reboot.
-
-The four published web ports bind to all host interfaces, including IPv6. The localhost URLs above are convenient access addresses, not access restrictions. Windows Firewall and network routing determine reachability.
+The four published web ports bind to `127.0.0.1` only, so the apps are reachable from this PC but not from other devices on the LAN. If LAN access to an app is needed, change its port mapping back to the `8989:8989` form deliberately, and secure that app first. Container logs rotate at 10 MB x 3 files per service.
 
 ## Storage and networking
 
@@ -97,7 +96,7 @@ Earlier setup notes list NZBGeek and AltHUB as indexers in both apps and a reten
 
 Connect Seerr to the external Plex installation and to Radarr/Sonarr using their API keys. Choose the correct root folders and quality profiles for new requests; existing library profile assignments are managed separately in Radarr/Sonarr.
 
-Store `CLOUDFLARE_TUNNEL_TOKEN` in the gitignored `.env`. It is the connector token from the Cloudflare tunnel setup, not the tunnel ID. Configure the public hostname in Cloudflare to route to `http://seerr:5055`. The live dashboard routing and access policies are not defined in this repository.
+Store `CLOUDFLARE_TUNNEL_TOKEN` in the gitignored `.env` (see `.env.example`). It is the connector token from the Cloudflare tunnel setup, not the tunnel ID. Configure the public hostname in Cloudflare to route to `http://seerr:5055`. The live dashboard routing and access policies are not defined in this repository.
 
 After changing the token, recreate the connector:
 
@@ -123,7 +122,7 @@ After syncing, assign the profile to existing media in Radarr/Sonarr and select 
 
 ## Backups and recovery
 
-Restore templates are setup references, not backups of users, databases, request history, or library state. No backup files were found in the usual Sonarr/Radarr `Backups` directories at review. Backups elsewhere and Windows backup jobs were not checked.
+Restore templates are setup references, not backups of users, databases, request history, or library state. Sonarr and Radarr write their own scheduled backups to `config/sonarr/Backups/scheduled` and `config/radarr/Backups/scheduled` (first seen 30 October 2026). Those live on the same disk as the data they protect, so they only count as backups once copied elsewhere. Backups elsewhere and Windows backup jobs were not checked.
 
 Back up the following to separate storage:
 
@@ -158,7 +157,8 @@ docker compose up -d
 docker compose ps
 docker compose logs --tail 100 sonarr radarr nzbget seerr recyclarr cloudflared
 
-# Update images and recreate; take a backup and review release notes first
+# Update images: edit the pinned tag(s) in docker-compose.yml first,
+# take a backup and review release notes, then pull and recreate
 docker compose pull
 docker compose up -d
 
@@ -166,7 +166,7 @@ docker compose up -d
 docker compose down
 ```
 
-Most images use the moving `latest` tag; Recyclarr tracks major version `8`. Updating can change behavior or migrate databases. Record the working image versions/digests if reproducible rollback matters.
+All image tags are pinned, so `docker compose pull` changes nothing until a tag in `docker-compose.yml` is edited. Updating can change behavior or migrate databases; to roll back, restore the previous tag and recreate (an app database that has already migrated may not accept the older version). Check the images' release pages for new versions, or run a notifier such as Diun for alerts.
 
 **Do not use `docker compose down -v` for a normal shutdown:** it removes the Seerr named volume and its settings, users, and request history.
 

@@ -1,68 +1,111 @@
+# Shared fragments. Image tags are pinned to the versions verified running on
+# 30 October 2026; bump them deliberately (see README "Operations").
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-lsio-env: &lsio-env
+  PUID: "1000"
+  PGID: "1000"
+  TZ: Europe/London
+
 services:
   sonarr:
-    image: lscr.io/linuxserver/sonarr:latest
+    image: lscr.io/linuxserver/sonarr:4.0.20.3014-ls1
     container_name: sonarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
+      <<: *lsio-env
     volumes:
       - ./config/sonarr:/config
       - "F:/Media Server/TV Shows:/tv"
       - "F:/Media Server/Downloads:/downloads"
     ports:
-      - 8989:8989
+      - 127.0.0.1:8989:8989
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:8989/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
     restart: unless-stopped
 
   radarr:
-    image: lscr.io/linuxserver/radarr:latest
+    image: lscr.io/linuxserver/radarr:6.4.4.10685-ls323
     container_name: radarr
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
+      <<: *lsio-env
     volumes:
       - ./config/radarr:/config
       - "F:/Media Server/Movies:/movies"
       - "F:/Media Server/Downloads:/downloads"
     ports:
-      - 7878:7878
+      - 127.0.0.1:7878:7878
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:7878/ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+    logging: *default-logging
     restart: unless-stopped
 
   nzbget:
-    image: nzbgetcom/nzbget:latest
+    image: nzbgetcom/nzbget:v26.3
     container_name: nzbget
     environment:
-      - PUID=1000
-      - PGID=1000
-      - TZ=Europe/London
+      <<: *lsio-env
     volumes:
       - ./config/nzbget:/config
       - "F:/Media Server/Downloads:/downloads"
     ports:
-      - 6789:6789
+      - 127.0.0.1:6789:6789
+    healthcheck:
+      # Requests from 127.0.0.1 are exempt from NZBGet auth (AuthorizedIP default).
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:6789/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
     restart: unless-stopped
 
   recyclarr:
-    image: ghcr.io/recyclarr/recyclarr:8
+    image: ghcr.io/recyclarr/recyclarr:8.8.0
     container_name: recyclarr
     user: 1000:1000
     environment:
       - TZ=Europe/London
     volumes:
       - ./config/recyclarr:/config
+    depends_on:
+      sonarr:
+        condition: service_healthy
+      radarr:
+        condition: service_healthy
+    logging: *default-logging
     restart: unless-stopped
 
   cloudflared:
-    image: cloudflare/cloudflared:latest
+    image: cloudflare/cloudflared:2026.10.4
     container_name: cloudflared
-    command: tunnel run
+    command: tunnel --metrics 127.0.0.1:2000 run
     environment:
       - TUNNEL_TOKEN=${CLOUDFLARE_TUNNEL_TOKEN}
+      - TZ=Europe/London
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:2000", "ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    logging: *default-logging
     restart: unless-stopped
 
   seerr:
-    image: ghcr.io/seerr-team/seerr:latest
+    image: ghcr.io/seerr-team/seerr:v3.5.1
     container_name: seerr
     init: true
     environment:
@@ -70,7 +113,9 @@ services:
     volumes:
       - seerr-data:/app/config
     ports:
-      - 5055:5055
+      # Local access only; the public route is the Cloudflare Tunnel, which
+      # reaches Seerr over the Compose network as http://seerr:5055.
+      - 127.0.0.1:5055:5055
     healthcheck:
       test: wget --no-verbose --tries=1 --spider http://localhost:5055/api/v1/settings/public || exit 1
       start_period: 20s
@@ -79,6 +124,7 @@ services:
       retries: 3
     security_opt:
       - no-new-privileges
+    logging: *default-logging
     restart: unless-stopped
 
 volumes:
