@@ -4,7 +4,7 @@ Docker Compose stack for media requests via Seerr, library automation via Sonarr
 
 ## Configuration and verification
 
-Reviewed on 29 October 2026 against `docker-compose.yml`, the saved Sonarr/Radarr XML settings, NZBGet configuration, and Recyclarr configuration. On 30 October 2026 the Compose file was hardened: image tags pinned, web ports bound to localhost, healthchecks added for every service except Recyclarr, container log rotation enabled, and Recyclarr made to wait for healthy Sonarr/Radarr. This is a snapshot, not a continuous health check. An end-to-end request, download, import, and Plex playback was not tested.
+Reviewed on 29 October 2026 against `docker-compose.yml`, the saved Sonarr/Radarr XML settings, NZBGet configuration, and Recyclarr configuration. On 30 October 2026 the Compose file was hardened: image tags pinned, web ports bound to localhost, healthchecks added for every service except Recyclarr, container log rotation enabled, and Recyclarr made to wait for healthy Sonarr/Radarr. On 31 October 2026 NZBGet, Sonarr, and Radarr were given a single shared `/data` mount so imports rename instead of copy (see "Storage and networking"). This is a snapshot, not a continuous health check. An end-to-end request, download, import, and Plex playback was not tested.
 
 Sonarr/Radarr download-client categories, indexers, quality-profile assignments, and Seerr connections must be checked in their UIs; they were not independently verified during this review. The setup instructions below describe the intended wiring.
 
@@ -26,9 +26,7 @@ The four published web ports bind to `127.0.0.1` only, so the apps are reachable
 
 | Host storage | Container path | Used by |
 |---|---|---|
-| `F:/Media Server/TV Shows` | `/tv` | Sonarr |
-| `F:/Media Server/Movies` | `/movies` | Radarr |
-| `F:/Media Server/Downloads` | `/downloads` | NZBGet, Sonarr, Radarr |
+| `F:/Media Server` | `/data` | NZBGet, Sonarr, Radarr |
 | `./config/sonarr` | `/config` | Sonarr |
 | `./config/radarr` | `/config` | Radarr |
 | `./config/nzbget` | `/config` | NZBGet |
@@ -37,7 +35,9 @@ The four published web ports bind to `127.0.0.1` only, so the apps are reachable
 
 Relative paths resolve from this Compose project. Plex reads the Windows library folders directly. All containers share the Compose default network: use service names such as `radarr`, `sonarr`, and `nzbget` for connections between containers, not `localhost`. Host Plex connections require an address reachable from the container.
 
-The shared `/downloads` path avoids remote path mappings for this intended wiring. Libraries and downloads are separate mounts, so imports may require copying and deleting instead of an atomic rename, even though the host folders are on F:. A common parent mount is a possible future improvement; it is not implemented here.
+NZBGet, Sonarr, and Radarr all mount the single parent folder `F:/Media Server` as `/data`, so downloads (`/data/Downloads`) and the libraries (`/data/Movies`, `/data/TV Shows`) are on one mount and no remote path mappings are needed. This matters because Docker Desktop presents each bind mount as a separate mount point: a rename between two mounts fails and falls back to copy-then-delete, even when both host folders are on F:. Measured on 31 October 2026 inside the Sonarr container, moving a 1 GB file from `/downloads` to `/tv` took 10.5 s and produced a new inode (a copy), while the same move from `/data/Downloads` to `/data/TV Shows` took 4 ms and kept the inode (a true rename). With `/data`, imports are instant and do not need the file's size in free space twice.
+
+The previous per-folder mounts (`/tv`, `/movies`, `/downloads`) were removed on 31 October 2026 after all series and movie paths had been repointed to `/data/...` with the Mass/Movie Editor ("don't move files"). Do not reintroduce them.
 
 Seerr's database is in Docker-managed storage, separate from `./config`. The actual volume name is normally project-prefixed; discover it with `docker volume ls`. Do not rely on a hard-coded internal WSL filesystem path to back it up.
 
@@ -46,8 +46,8 @@ Seerr's database is in Docker-managed storage, separate from `./config`. The act
 1. A user requests media in Seerr, locally or through the configured Cloudflare hostname.
 2. Seerr submits an approved request to Radarr or Sonarr.
 3. Radarr/Sonarr search their configured indexers and send an NZB to NZBGet.
-4. NZBGet downloads and unpacks into `/downloads/completed/movies` or `/downloads/completed/tv`, according to category.
-5. Radarr/Sonarr import and rename media into `/movies` or `/tv`.
+4. NZBGet downloads and unpacks into `/data/Downloads/completed/movies` or `/data/Downloads/completed/tv`, according to category.
+5. Radarr/Sonarr import and rename media into `/data/Movies` or `/data/TV Shows`.
 6. Plex scans the Windows library folders. Seerr's subsequent Plex library sync updates availability.
 
 If availability is stale, scan the library in Plex, then trigger Seerr's Plex library sync. Library scans and request approval depend on the relevant app settings.
@@ -60,7 +60,7 @@ Saved configuration at review:
 |---|---|
 | Provider | Eweka, `news.eweka.nl`, port `563`, encryption enabled |
 | Connections | `40` |
-| MainDir | `/downloads` |
+| MainDir | `/data/Downloads` |
 | DestDir | `${MainDir}/completed` |
 | InterDir | `${MainDir}/intermediate` |
 | AppendCategoryDir | `no` |
@@ -85,8 +85,8 @@ Intended connections:
 
 | App | Root folder | Download client | Category to configure |
 |---|---|---|---|
-| Radarr | `/movies` | NZBGet at `nzbget:6789` | `Movies` |
-| Sonarr | `/tv` | NZBGet at `nzbget:6789` | `Series` |
+| Radarr | `/data/Movies` | NZBGet at `nzbget:6789` | `Movies` |
+| Sonarr | `/data/TV Shows` | NZBGet at `nzbget:6789` | `Series` |
 
 `Series` is the saved NZBGet category name; `tv` is the output folder name. Do not confuse them when configuring Sonarr. Check the existing client setting before changing anything.
 
@@ -172,7 +172,8 @@ All image tags are pinned, so `docker compose pull` changes nothing until a tag 
 
 ## Troubleshooting
 
-- **Missing download directory:** check category output paths remain inside `/downloads`, exist, and match the mounts. `Series` should write to `/downloads/completed/tv`.
+- **Missing download directory:** check category output paths remain inside `/data/Downloads`, exist, and match the mounts. `Series` should write to `/data/Downloads/completed/tv`.
+- **Imports slow or disk fills during import:** the series/movie path or the download path is on a legacy mount (`/tv`, `/movies`, `/downloads`) instead of `/data`, so the import copies instead of renaming. Repoint the root folder and item paths to `/data/...`.
 - **Wrong category or import stuck:** compare the download client's category with NZBGet's exact category name. Check completed-download handling and app logs.
 - **Cannot connect between containers:** use service names and container ports. `localhost` refers to the calling container itself.
 - **Slow downloads:** check provider errors, connection limits, disk space, and repair/unpack activity. The current baseline is 40 connections; performance depends on the workload and hardware.

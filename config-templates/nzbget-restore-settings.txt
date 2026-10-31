@@ -14,7 +14,7 @@ Key settings to apply (see README "NZBGet" section for full detail):
   Server1.Username=<EWEKA_USERNAME>
   Server1.Password=<EWEKA_PASSWORD>
 
-  MainDir=/downloads
+  MainDir=/data/Downloads
   DestDir=${MainDir}/completed
   InterDir=${MainDir}/intermediate
   AppendCategoryDir=no
