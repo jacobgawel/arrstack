@@ -173,6 +173,7 @@ All image tags are pinned, so `docker compose pull` changes nothing until a tag 
 ## Troubleshooting
 
 - **Missing download directory:** check category output paths remain inside `/data/Downloads`, exist, and match the mounts. `Series` should write to `/data/Downloads/completed/tv`.
+- **"Missing root folder for movie collection":** Radarr collections store their own root folder, separate from the movies, and the Movie Editor does not update it. Movies → Collections → Edit Collections → Select All → Root Folder → `/data/Movies` → Apply.
 - **Imports slow or disk fills during import:** the series/movie path or the download path is on a legacy mount (`/tv`, `/movies`, `/downloads`) instead of `/data`, so the import copies instead of renaming. Repoint the root folder and item paths to `/data/...`.
 - **Wrong category or import stuck:** compare the download client's category with NZBGet's exact category name. Check completed-download handling and app logs.
 - **Cannot connect between containers:** use service names and container ports. `localhost` refers to the calling container itself.
